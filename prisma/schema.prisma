@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================
+// USER & AUTHENTICATION
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  testSessions  TestSession[]
+
+  @@index([email])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+// ============================================
+// QUESTION BANK
+// ============================================
+
+model Question {
+  id            String       @id @default(cuid())
+  section       Section
+  questionType  QuestionType
+  questionText  String       @db.Text
+  options       Json
+  correctAnswer Int
+  explanation   String?      @db.Text
+  difficulty    Difficulty   @default(MEDIUM)
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  audioFile     AudioFile?
+  passage       Passage?     @relation(fields: [passageId], references: [id])
+  passageId     String?
+  answers       Answer[]
+
+  @@index([section, isActive])
+  @@index([passageId])
+}
+
+model AudioFile {
+  id         String   @id @default(cuid())
+  url        String
+  duration   Int
+  transcript String?  @db.Text
+  createdAt  DateTime @default(now())
+
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  questionId String   @unique
+}
+
+model Passage {
+  id         String     @id @default(cuid())
+  title      String
+  content    String     @db.Text
+  paragraphs Json
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  questions  Question[]
+}
+
+enum Section {
+  LISTENING
+  STRUCTURE
+  READING
+}
+
+enum QuestionType {
+  MAIN_IDEA
+  DETAIL
+  INFERENCE
+  ATTITUDE
+  SENTENCE_COMPLETION
+  ERROR_IDENTIFICATION
+  VOCABULARY
+  REFERENCE
+  FACTUAL
+  NEGATIVE_FACTUAL
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+// ============================================
+// TEST SESSIONS & RESULTS
+// ============================================
+
+model TestSession {
+  id             String      @id @default(cuid())
+  userId         String
+  status         TestStatus  @default(IN_PROGRESS)
+  currentSection Section     @default(LISTENING)
+
+  startedAt      DateTime    @default(now())
+  finishedAt     DateTime?
+
+  listeningTime  Int?
+  structureTime  Int?
+  readingTime    Int?
+
+  listeningRaw   Int?
+  structureRaw   Int?
+  readingRaw     Int?
+
+  listeningScore Int?
+  structureScore Int?
+  readingScore   Int?
+
+  totalScore     Int?
+
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers        Answer[]
+
+  @@index([userId, status])
+  @@index([startedAt])
+}
+
+model Answer {
+  id             String      @id @default(cuid())
+  testSessionId  String
+  questionId     String
+  selectedAnswer Int
+  isCorrect      Boolean
+  answeredAt     DateTime    @default(now())
+
+  testSession    TestSession @relation(fields: [testSessionId], references: [id], onDelete: Cascade)
+  question       Question    @relation(fields: [questionId], references: [id])
+
+  @@unique([testSessionId, questionId])
+  @@index([testSessionId])
+}
+
+enum TestStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+// ============================================
+// ACTIVITY LOG
+// ============================================
+
+model ActivityLog {
+  id        String       @id @default(cuid())
+  type      ActivityType
+  message   String
+  metadata  Json?
+  createdAt DateTime     @default(now())
+
+  @@index([createdAt])
+}
+
+enum ActivityType {
+  TEST_COMPLETED
+  USER_REGISTERED
+  QUESTION_ADDED
+  QUESTION_UPDATED
+}
