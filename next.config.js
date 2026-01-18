@@ -3,7 +3,7 @@ const nextConfig = {
     // External packages for server components
     serverExternalPackages: ['@prisma/client', 'bcryptjs'],
 
-    // Disable ESLint during build (we'll fix issues locally)
+    // Disable ESLint during build
     eslint: {
         ignoreDuringBuilds: true,
     },
@@ -13,7 +13,15 @@ const nextConfig = {
         ignoreBuildErrors: true,
     },
 
-    // CORS headers for Vite frontend
+    // Exclude src folder from Next.js (it's for Vite)
+    pageExtensions: ['tsx', 'ts'],
+
+    // Only use app directory for API routes
+    experimental: {
+        // Disable static generation for API-only project
+    },
+
+    // CORS headers for frontend
     async headers() {
         return [
             {
