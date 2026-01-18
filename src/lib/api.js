@@ -1,5 +1,5 @@
 // API Client for connecting to Next.js backend
-const API_BASE_URL = 'http://localhost:3001/api';
+const API_BASE_URL = 'https://azzam-toefl-mrd4cn7fa-reanmazes-projects.vercel.app/api';
 
 class ApiClient {
     constructor() {
