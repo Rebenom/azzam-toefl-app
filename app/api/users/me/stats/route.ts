@@ -1,21 +1,31 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import authOptions from '../../../../../lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
 import prisma from '../../../../../lib/prisma';
 
 // GET /api/users/me/stats - Get user statistics
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        // Get user ID from header (sent by frontend)
+        const userId = request.headers.get('x-user-id');
 
-        if (!session?.user?.id) {
-            return NextResponse.json(
-                { success: false, error: 'Unauthorized' },
-                { status: 401 }
-            );
+        // If no user ID, return empty stats (for demo)
+        if (!userId) {
+            return NextResponse.json({
+                success: true,
+                data: {
+                    totalTests: 0,
+                    completedTests: 0,
+                    highestScore: 0,
+                    averageScore: 0,
+                    lastTestDate: null,
+                    recentTests: [],
+                    sectionAverages: {
+                        listening: 0,
+                        structure: 0,
+                        reading: 0,
+                    },
+                },
+            });
         }
-
-        const userId = session.user.id;
 
         // Get all test sessions for user
         const testSessions = await prisma.testSession.findMany({
@@ -50,12 +60,23 @@ export async function GET() {
         const averageScore = completedCount > 0 ? Math.round(totalScore / completedCount) : 0;
         const lastTestDate = testSessions.length > 0 ? testSessions[0].startedAt : null;
 
+        // Get recent tests for display
+        const recentTests = completedTests.slice(0, 5).map(t => ({
+            id: t.id,
+            totalScore: t.totalScore,
+            listeningScore: t.listeningScore,
+            structureScore: t.structureScore,
+            readingScore: t.readingScore,
+            completedAt: t.completedAt,
+        }));
+
         const stats = {
             totalTests,
             completedTests: completedCount,
             highestScore,
             averageScore,
             lastTestDate,
+            recentTests,
             sectionAverages: {
                 listening: completedCount > 0 ? Math.round(totalListening / completedCount) : 0,
                 structure: completedCount > 0 ? Math.round(totalStructure / completedCount) : 0,

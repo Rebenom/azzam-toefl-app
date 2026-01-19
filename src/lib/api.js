@@ -6,12 +6,25 @@ class ApiClient {
         this.baseUrl = API_BASE_URL;
     }
 
+    // Get user from localStorage
+    getUser() {
+        try {
+            const saved = localStorage.getItem('toefl_user');
+            return saved ? JSON.parse(saved) : null;
+        } catch {
+            return null;
+        }
+    }
+
     async request(endpoint, options = {}) {
         const url = `${this.baseUrl}${endpoint}`;
+        const user = this.getUser();
 
         const config = {
             headers: {
                 'Content-Type': 'application/json',
+                ...(user?.id && { 'x-user-id': user.id }),
+                ...(user?.role && { 'x-user-role': user.role }),
                 ...options.headers,
             },
             ...options,
@@ -41,7 +54,6 @@ class ApiClient {
     }
 
     async login(email, password) {
-        // Use custom login endpoint
         const response = await fetch(`${this.baseUrl}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
