@@ -15,7 +15,6 @@ export function AuthProvider({ children }) {
 
     const checkAuth = async () => {
         try {
-            // First check localStorage for quick restore
             const savedUser = localStorage.getItem('toefl_user');
             if (savedUser) {
                 setUser(JSON.parse(savedUser));
@@ -32,71 +31,26 @@ export function AuthProvider({ children }) {
         setLoading(true);
 
         try {
-            // Call the register endpoint to validate credentials
-            // Since we don't have a direct login endpoint in the simple setup,
-            // we'll check if user exists and validate password server-side
+            // Use API client with Netlify proxy
+            const response = await api.login(email, password);
 
-            // For now, we'll simulate by checking against known users
-            // In production, this would call a proper login API
-            const response = await fetch('http://localhost:3001/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
-
-            if (!response.ok) {
-                // Fallback: use local validation for demo
-                const validUsers = [
-                    { email: 'admin@toefl.com', password: 'admin123', name: 'Admin', role: 'ADMIN' },
-                    { email: 'user@toefl.com', password: 'user123', name: 'Test User', role: 'USER' },
-                ];
-
-                const foundUser = validUsers.find(u => u.email === email && u.password === password);
-
-                if (!foundUser) {
-                    throw new Error('Email atau password salah');
-                }
-
-                const userData = {
-                    id: Date.now().toString(),
-                    name: foundUser.name,
-                    email: foundUser.email,
-                    role: foundUser.role,
-                };
-
-                setUser(userData);
-                localStorage.setItem('toefl_user', JSON.stringify(userData));
-                return userData;
-            }
-
-            const data = await response.json();
-            setUser(data.data);
-            localStorage.setItem('toefl_user', JSON.stringify(data.data));
-            return data.data;
-        } catch (err) {
-            // Fallback for demo purposes
-            const validUsers = [
-                { email: 'admin@toefl.com', password: 'admin123', name: 'Admin', role: 'ADMIN' },
-                { email: 'user@toefl.com', password: 'user123', name: 'Test User', role: 'USER' },
-            ];
-
-            const foundUser = validUsers.find(u => u.email === email && u.password === password);
-
-            if (!foundUser) {
-                setError('Email atau password salah');
-                throw new Error('Email atau password salah');
+            if (!response.success) {
+                throw new Error(response.error || 'Login gagal');
             }
 
             const userData = {
-                id: Date.now().toString(),
-                name: foundUser.name,
-                email: foundUser.email,
-                role: foundUser.role,
+                id: response.data.id,
+                name: response.data.name,
+                email: response.data.email,
+                role: response.data.role,
             };
 
             setUser(userData);
             localStorage.setItem('toefl_user', JSON.stringify(userData));
             return userData;
+        } catch (err) {
+            setError(err.message || 'Email atau password salah');
+            throw err;
         } finally {
             setLoading(false);
         }
