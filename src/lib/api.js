@@ -14,7 +14,6 @@ class ApiClient {
                 'Content-Type': 'application/json',
                 ...options.headers,
             },
-            credentials: 'include', // For cookies/session
             ...options,
         };
 
@@ -42,14 +41,13 @@ class ApiClient {
     }
 
     async login(email, password) {
-        // Using NextAuth credentials signin
-        const response = await fetch(`${this.baseUrl}/auth/callback/credentials`, {
+        // Use custom login endpoint
+        const response = await fetch(`${this.baseUrl}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
             body: JSON.stringify({ email, password }),
         });
-        return response;
+        return response.json();
     }
 
     async getSession() {
