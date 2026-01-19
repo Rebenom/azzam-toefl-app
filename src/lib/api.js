@@ -1,5 +1,5 @@
-// API Client for connecting to Next.js backend
-const API_BASE_URL = 'https://azzam-toefl-mrd4cn7fa-reanmazes-projects.vercel.app/api';
+// API Client - uses Netlify proxy to avoid CORS
+const API_BASE_URL = '/api';
 
 class ApiClient {
     constructor() {
